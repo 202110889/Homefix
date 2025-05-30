@@ -1,3 +1,4 @@
+
 import torch
 import torch.nn as nn
 from torchvision import transforms
@@ -107,3 +108,4 @@ def run_pipeline(image_path_or_pil, model=None):
     pred_loc_name = inv_location_map[pred_loc]
 
     return pred_label_name, pred_loc_name
+
