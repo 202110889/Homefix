@@ -66,7 +66,7 @@ export default function App() {
     try {
       console.log("업로드할 base64 길이:", base64Data?.length);
       const res = await axios.post(
-        "http://172.17.78.192:8000/analyze/",
+        "http://172.17.108.1:8000/analyze/",
         {
           image_base64: base64Data,
         },
