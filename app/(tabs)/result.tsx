@@ -107,13 +107,13 @@ export default function Result() {
               style={{ width: "100%", height: "100%" }}
             />
           </ImgFrame>
-          <Text style={styles.summary}>
-            <ul style={{ backgroundColor: "lime" }}>
-              <li>문제 유형: {params.problem}</li>
-            </ul>
-            <ul style={{ backgroundColor: "lime" }}>
-              <li>문제 발생 위치: {params.location}</li>
-            </ul>
+          <View style={styles.summary}>
+            <View style={{ backgroundColor: "#bbbbbb", padding: 3 }}>
+              <Text>문제 유형: {params.problem}</Text>
+            </View>
+            <View style={{ backgroundColor: "#bbbbbb", padding: 3 }}>
+              <Text>문제 발생 위치: {params.location}</Text>
+            </View>
             {/* </Text>
           <Text
             style={StyleSheet.compose(
@@ -121,7 +121,7 @@ export default function Result() {
               styles.summary
             )}
           > */}
-          </Text>
+          </View>
         </View>
         <ScrollView
           style={styles.scroll}
