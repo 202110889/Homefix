@@ -1,5 +1,6 @@
 from nlp.retriever import load_index
 from nlp.generator import generate_gpt_answer
+from nlp.simple_conversation import process_user_message
 import numpy as np
 from sklearn.preprocessing import normalize
 
@@ -30,9 +31,20 @@ def return_solution(label: str, loc: str):
 
 def chat_with_ai(user_message: str):
     """
-    사용자 메시지에 대한 일반적인 채팅 응답을 생성합니다.
-    임베딩과 FAISS 검색을 사용하여 관련 문서를 기반으로 답변을 제공합니다.
+    사용자 메시지에 대한 스마트한 채팅 응답을 생성합니다.
+    구체적이지 않은 질문의 경우 추가 질문을 통해 더 정확한 답변을 제공합니다.
     """
+    
+    # 대화 처리
+    response_message, is_final_answer = process_user_message(user_message)
+    
+    if not is_final_answer:
+        # 추가 질문이 필요한 경우
+        return response_message
+    
+    # 최종 답변을 생성하는 경우
+    search_query = response_message
+    
     # 홈 수리 관련 키워드 체크
     home_repair_keywords = [
         # 기본 수리 키워드
@@ -68,12 +80,12 @@ def chat_with_ai(user_message: str):
     ]
     
     # 사용자 메시지에 홈 수리 관련 키워드가 있는지 확인
-    has_home_repair_context = any(keyword in user_message for keyword in home_repair_keywords)
+    has_home_repair_context = any(keyword in search_query for keyword in home_repair_keywords)
     
     if has_home_repair_context:
         # 홈 수리 관련 질문인 경우 임베딩과 FAISS 검색 사용
         # 질문 임베딩
-        query_embedding = retriever.encode([user_message], convert_to_tensor=False)
+        query_embedding = retriever.encode([search_query], convert_to_tensor=False)
         query_embedding = np.array(query_embedding).astype("float32")
         query_embedding = normalize(query_embedding, norm='l2')
 
@@ -89,7 +101,7 @@ def chat_with_ai(user_message: str):
         
         # 추가 컨텍스트 정보
         additional_context = f"""
-        사용자 질문: {user_message}
+        사용자 질문: {search_query}
         
         위의 관련 문서들을 참고하여 다음을 포함한 답변을 제공해주세요:
         - 안전을 최우선으로 고려한 조언
@@ -104,12 +116,12 @@ def chat_with_ai(user_message: str):
     else:
         # 일반적인 질문인 경우 기본 컨텍스트 사용
         final_context = f"""
-        사용자가 다음과 같이 질문했습니다: {user_message}
+        사용자가 다음과 같이 질문했습니다: {search_query}
         
         홈 수리 전문 AI 어시스턴트로서 친근하고 도움이 되는 답변을 제공해주세요.
         가능하면 홈 수리와 관련된 조언으로 연결해주세요.
         """
     
     # GPT로 응답 생성
-    answer = generate_gpt_answer(user_message, final_context)
+    answer = generate_gpt_answer(search_query, final_context)
     return answer

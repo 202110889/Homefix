@@ -1,3 +1,15 @@
 npx expo start --clear
 
 uvicorn app:app --host 0.0.0.0 --port 8000 --reload
+
+# GIt 로그 확인
+git log --oneline
+
+# Git 커밋
+git add . 
+
+# Git 메시지
+git commit -m "메시지"
+
+# 이전 커밋으로 되돌리기
+git reset --hard [코드 이름 a2c41ee]
