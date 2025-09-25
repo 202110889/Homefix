@@ -78,7 +78,7 @@ def generate_clarification_question(user_message: str, question_type: str) -> st
     conversation_manager.waiting_for_clarification = True
     
     if "기름때" in user_message:
-        conversation_manager.question_context = "oil_stain"
+        conversation_manager.question_context = "grease"
         return """기름때 제거는 대상에 따라 방법이 다릅니다.
 
 어디에서 기름때를 제거하고 싶으신가요?
@@ -168,12 +168,12 @@ def is_clarification_answer(user_message: str) -> bool:
     
     context = conversation_manager.question_context
     
-    if context == "oil_stain":
+    if context == "grease":
         specific_answers = ["후라이팬", "팬", "인덕션", "가스레인지", "벽지", "벽면", "바닥", "옷", "직물"]
     elif context == "mold":
         specific_answers = ["화장실", "타일", "실리콘", "벽지", "벽면", "천장", "옷장", "서랍", "부엌", "싱크대"]
     elif context == "water_stain":
-        specific_answers = ["화장실", "거울", "유리", "싱크대", "수도꼭지", "샤워부스", "욕조", "세탁기"]
+        specific_answers = ["화장실", "거울", "유리", "싱크대", "수도꼭지", "수전", "샤워부스", "욕조", "세탁기"]
     elif context == "rust":
         specific_answers = ["수도꼭지", "파이프", "자전거", "금속", "도구", "공구", "자동차"]
     elif context == "cleaning":
