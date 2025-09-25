@@ -49,7 +49,7 @@ location_map = {
     '타일/페인트벽': 19, '프레임': 20, '후드': 21
 }
 inv_location_map = {v: k for k, v in location_map.items()}
-problems = ['grease', 'mold', 'rust', 'water_stain']
+problems = ['기름때', '곰팡이', '녹', '물때']
 
 valid_location_scope = {
     0: [1, 2, 8, 9, 11, 12, 15, 16, 17, 19, 21],  # grease

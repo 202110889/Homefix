@@ -1,3 +1,4 @@
+import TypingText from "@/components/TypingText";
 import { getApiClient } from "@/config/api";
 import * as ImageManipulator from "expo-image-manipulator";
 import * as ImagePicker from "expo-image-picker";
@@ -22,6 +23,7 @@ interface Message {
   isUser: boolean;
   timestamp: Date;
   imageUri?: string;
+  isTyping?: boolean; // 타이핑 효과 여부
 }
 
 export default function ChatScreen() {
@@ -138,6 +140,7 @@ export default function ChatScreen() {
             text: `이미지 분석 결과:\n\n문제: ${responseData.problem}\n위치: ${responseData.location}\n\n사용자 질문: ${responseData.user_message}\n\n해결책:\n${responseData.solution}`,
             isUser: false,
             timestamp: new Date(),
+            isTyping: true, // 타이핑 효과 활성화
           };
 
           setMessages((prev) => [...prev, botMessage]);
@@ -154,6 +157,7 @@ export default function ChatScreen() {
             text: `이미지를 분석한 결과:\n\n문제: ${responseData.problem}\n위치: ${responseData.location}\n\n해결책:\n${responseData.solution}`,
             isUser: false,
             timestamp: new Date(),
+            isTyping: true, // 타이핑 효과 활성화
           };
 
           setMessages((prev) => [...prev, botMessage]);
@@ -170,6 +174,7 @@ export default function ChatScreen() {
           text: response.data.response,
           isUser: false,
           timestamp: new Date(),
+          isTyping: true, // 타이핑 효과 활성화
         };
 
         setMessages((prev) => [...prev, botMessage]);
@@ -183,6 +188,7 @@ export default function ChatScreen() {
         text: "죄송합니다. 일시적인 오류가 발생했습니다. 다시 시도해주세요.",
         isUser: false,
         timestamp: new Date(),
+        isTyping: true, // 타이핑 효과 활성화
       };
 
       setMessages((prev) => [...prev, errorMessage]);
@@ -232,16 +238,36 @@ export default function ChatScreen() {
                   resizeMode="cover"
                 />
               )}
-              {message.text && (
-                <Text
-                  style={[
-                    styles.messageText,
-                    message.isUser ? styles.userText : styles.botText,
-                  ]}
-                >
-                  {message.text}
-                </Text>
-              )}
+              {message.text &&
+                (message.isTyping && !message.isUser ? (
+                  <TypingText
+                    text={message.text}
+                    speed={30}
+                    style={[
+                      styles.messageText,
+                      message.isUser ? styles.userText : styles.botText,
+                    ]}
+                    onComplete={() => {
+                      // 타이핑 완료 후 상태 업데이트
+                      setMessages((prev) =>
+                        prev.map((msg) =>
+                          msg.id === message.id
+                            ? { ...msg, isTyping: false }
+                            : msg
+                        )
+                      );
+                    }}
+                  />
+                ) : (
+                  <Text
+                    style={[
+                      styles.messageText,
+                      message.isUser ? styles.userText : styles.botText,
+                    ]}
+                  >
+                    {message.text}
+                  </Text>
+                ))}
               <Text
                 style={[
                   styles.timestamp,
