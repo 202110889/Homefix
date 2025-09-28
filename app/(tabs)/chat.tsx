@@ -1,10 +1,12 @@
 import TypingText from "@/components/TypingText";
 import { createApiClient } from "@/config/api";
 import { useTheme } from "@/contexts/ThemeContext";
+import { router } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
   Alert,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   ScrollView,
   StyleSheet,
@@ -35,12 +37,17 @@ export default function ChatScreen() {
   ]);
   const [inputText, setInputText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
 
   const scrollToBottom = () => {
     setTimeout(() => {
       scrollViewRef.current?.scrollToEnd({ animated: true });
     }, 100);
+  };
+
+  const goToHome = () => {
+    router.replace("/");
   };
 
   useEffect(() => {
@@ -108,6 +115,42 @@ export default function ChatScreen() {
         style={[styles.container, { backgroundColor: themeColors.background }]}
         edges={["top", "left", "right", "bottom"]}
       >
+        {/* 상단 메뉴 바 */}
+        <View style={styles.headerBar}>
+          <TouchableOpacity
+            style={styles.menuButton}
+            onPress={() => setShowSettings(true)}
+          >
+            <View style={styles.menuIcon}>
+              <View
+                style={[styles.menuLine, { backgroundColor: themeColors.text }]}
+              />
+              <View
+                style={[styles.menuLine, { backgroundColor: themeColors.text }]}
+              />
+              <View
+                style={[styles.menuLine, { backgroundColor: themeColors.text }]}
+              />
+            </View>
+          </TouchableOpacity>
+
+          <View style={styles.spacer} />
+
+          <TouchableOpacity style={styles.homeButton} onPress={goToHome}>
+            <View style={styles.homeIcon}>
+              <View
+                style={[
+                  styles.homeRoof,
+                  { borderBottomColor: themeColors.text },
+                ]}
+              />
+              <View
+                style={[styles.homeBase, { backgroundColor: themeColors.text }]}
+              />
+            </View>
+          </TouchableOpacity>
+        </View>
+
         <KeyboardAvoidingView
           style={styles.keyboardContainer}
           behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -220,6 +263,74 @@ export default function ChatScreen() {
             </TouchableOpacity>
           </View>
         </KeyboardAvoidingView>
+
+        {/* 설정 모달 */}
+        <Modal
+          visible={showSettings}
+          transparent={true}
+          animationType="slide"
+          onRequestClose={() => setShowSettings(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View
+              style={[
+                styles.settingsPanel,
+                { backgroundColor: themeColors.background },
+              ]}
+            >
+              <View
+                style={[
+                  styles.settingsHeader,
+                  { borderBottomColor: themeColors.borderColor },
+                ]}
+              >
+                <Text
+                  style={[styles.settingsTitle, { color: themeColors.text }]}
+                >
+                  HomeFix
+                </Text>
+                <TouchableOpacity
+                  style={styles.closeButton}
+                  onPress={() => setShowSettings(false)}
+                >
+                  <Text style={styles.closeButtonText}>✕</Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.settingsContent}>
+                <TouchableOpacity
+                  style={styles.settingsItem}
+                  onPress={() => {
+                    setShowSettings(false);
+                    goToHome();
+                  }}
+                >
+                  <View style={styles.settingsIcon}>
+                    <View style={styles.homeIcon}>
+                      <View
+                        style={[
+                          styles.homeRoof,
+                          { borderBottomColor: themeColors.text },
+                        ]}
+                      />
+                      <View
+                        style={[
+                          styles.homeBase,
+                          { backgroundColor: themeColors.text },
+                        ]}
+                      />
+                    </View>
+                  </View>
+                  <Text
+                    style={[styles.settingsText, { color: themeColors.text }]}
+                  >
+                    홈으로
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
       </SafeAreaView>
     </SafeAreaProvider>
   );
@@ -229,6 +340,112 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#f5f5f5",
+  },
+  headerBar: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+    backgroundColor: "transparent",
+    borderBottomWidth: 1,
+    borderBottomColor: "#e0e0e0",
+  },
+  spacer: {
+    flex: 1,
+  },
+  menuButton: {
+    padding: 5,
+  },
+  menuIcon: {
+    width: 20,
+    height: 15,
+    justifyContent: "space-between",
+  },
+  menuLine: {
+    height: 2,
+    borderRadius: 1,
+  },
+  homeButton: {
+    padding: 5,
+  },
+  homeIcon: {
+    width: 20,
+    height: 15,
+    justifyContent: "flex-end",
+    alignItems: "center",
+  },
+  homeRoof: {
+    width: 0,
+    height: 0,
+    borderLeftWidth: 8,
+    borderRightWidth: 8,
+    borderBottomWidth: 6,
+    borderLeftColor: "transparent",
+    borderRightColor: "transparent",
+    marginBottom: 2,
+  },
+  homeBase: {
+    width: 12,
+    height: 6,
+    borderRadius: 1,
+  },
+  // 설정 모달 스타일
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "flex-start",
+    alignItems: "flex-start",
+  },
+  settingsPanel: {
+    width: "70%",
+    height: "100%",
+    borderTopRightRadius: 20,
+    borderBottomRightRadius: 20,
+  },
+  settingsHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 20,
+    borderBottomWidth: 1,
+  },
+  settingsTitle: {
+    fontSize: 24,
+    fontWeight: "bold",
+  },
+  closeButton: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: "#f0f0f0",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  closeButtonText: {
+    fontSize: 16,
+    color: "#666",
+  },
+  settingsContent: {
+    padding: 20,
+  },
+  settingsItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: "#e0e0e0",
+  },
+  settingsIcon: {
+    width: 40,
+    height: 40,
+    marginRight: 15,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  settingsText: {
+    fontSize: 16,
   },
   keyboardContainer: {
     flex: 1,
