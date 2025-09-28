@@ -39,9 +39,6 @@ class ImageBase64Request(BaseModel):
 class ChatRequest(BaseModel):
     message: str
 
-class ImageWithTextRequest(BaseModel):
-    image_base64: str
-    message: str
 
 @app.get("/server-info/")
 async def get_server_info():
@@ -84,30 +81,6 @@ async def chat(data: ChatRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"채팅 처리 실패: {str(e)}")
 
-@app.post("/analyze-with-text/")
-async def analyze_with_text(data: ImageWithTextRequest):
-    try:
-        # 이미지 읽기
-        print("✅ 받은 base64 길이:", len(data.image_base64))
-        image_bytes = base64.b64decode(data.image_base64)
-        image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
-
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"이미지 처리 실패: {str(e)}")
-
-    # 문제 유형 + 위치 예측
-    problem, location = run_pipeline(image, model=model)
-
-    # 이미지 분석 결과와 사용자 텍스트를 결합하여 해결책 생성
-    combined_message = f"이미지 분석 결과: {problem} in {location}. 사용자 질문: {data.message}"
-    solution = chat_with_ai(combined_message)
-
-    return {
-        "problem": problem,
-        "location": location,
-        "solution": solution,
-        "user_message": data.message
-    }
 
 # 명령어 -> uvicorn app:app --host 0.0.0.0 --port 8000 --reload
 # FastAPI가 모든 IP에서의 접속을 허용하도록 설정
