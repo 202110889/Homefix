@@ -1,4 +1,63 @@
 from typing import Dict, List, Tuple, Optional
+from sentence_transformers import SentenceTransformer, util
+
+# 전역 retriever 초기화
+model = SentenceTransformer("jhgan/ko-sroberta-multitask")
+
+# 대상 목록
+objects = ["후라이팬", "냉장고", "가스레인지", "인덕션", "오븐", "전자레인지", "식기세척기", "정수기", "주방 싱크대", 
+            "타일", "변기", "배수구", "하수구", "유리", "거울", "스테인리스", "수전",
+            "욕조", "샤워기", "세면대", "세탁기", "수도꼭지",
+            "에어컨", "보일러", "벽지", "바닥", "천장", "문", "창문", "공기청정기", "문고리", "자물쇠", "경첩", "가구"]
+
+# 문제 목록
+problems = ["기름때", "물때", "곰팡이", "녹", "얼룩", "누수", "누전", "단락", "파손",
+            "부식", "변색", "탈색", "찌그러짐", "찢어짐", "막힘", "뚫기", "뚫는법", 
+            "고장", "작동안함", "안됨", "문제", "이상"]
+
+all_objects = ["후라이팬", "프라이팬", "냉장고", "가스레인지", "인덕션", "오븐", "전자레인지", "식기세척기", "정수기", "싱크대", 
+            "타일", "변기", "배수구", "배수", "하수구", "하수" , "유리", "거울", "스테인리스", "수전",
+            "욕조", "샤워기", "세면대", "세탁기", "수도꼭지",
+            "에어컨", "보일러", "벽지", "바닥", "천장", "문", "창문", "공기청정기", "문고리", "자물쇠", "경첩", "가구"]
+# 모든 객체-문제 조합 생성
+combined_prompts = []
+for obj in objects:
+    for prob in problems:
+        combined_prompts.append(f"{obj} {prob}")
+
+combined_emb = model.encode(combined_prompts, convert_to_tensor=True)
+
+def embedding_based_specificity(user_message: str):
+    """SentenceTransformer를 사용한 구체성 판단"""
+    
+    try:
+        # 사용자 질문 임베딩
+        query_emb = model.encode(user_message, convert_to_tensor=True)
+        
+        # 1. 모든 객체-문제 조합과 유사도 계산
+        combined_scores = util.cos_sim(query_emb, combined_emb)[0]
+        best_combined_score = combined_scores.max().item()
+        best_combined_idx = combined_scores.argmax().item()
+        best_combination = combined_prompts[best_combined_idx]
+        
+        # 2. 객체 키워드 매칭 확인
+        has_object_keywords = any(obj in user_message for obj in all_objects)
+        found_objects = [obj for obj in all_objects if obj in user_message]
+        
+        print(f"조합 유사도: {best_combined_score:.3f} ({best_combination})")
+        print(f"객체 키워드 포함: {has_object_keywords} ({found_objects})")
+        
+        # 조합 유사도와 객체 키워드 모두 확인해야 구체적
+        is_combined_specific = best_combined_score >= 0.7
+        is_object_keyword_present = has_object_keywords
+        
+        print(f"조합 구체적: {is_combined_specific}, 객체 키워드 포함: {is_object_keyword_present}")
+        
+        return is_combined_specific and is_object_keyword_present
+    except Exception as e:
+        print(f"임베딩 기반 구체성 판단 중 에러 발생: {e}")
+        # 에러 발생 시 기본적으로 구체적이라고 판단 (fallback)
+        return True
 
 class SimpleConversationManager:
     """간단한 대화 상태 관리 클래스"""
@@ -19,57 +78,16 @@ conversation_manager = SimpleConversationManager()
 
 def is_specific_content(user_message: str, context: Optional[str] = None) -> Tuple[bool, Optional[str]]:
     """
-    메시지가 구체적인지 판단 (질문이든 답변이든)
-    
-    Args:
-        user_message: 사용자 메시지
-        context: 추가 질문 컨텍스트 (grease, mold, water_stain, rust, cleaning)
-    
-    Returns:
-        Tuple[구체적_여부, 질문_유형]
+    메시지가 구체적인지 판단 (임베딩 기반)
     """
     
-    # 구체적인 패턴들
-    specific_patterns = {
-        "specific_object": [
-            # 구체적인 대상
-            "후라이팬", "팬", "인덕션", "가스레인지", "전자레인지",
-            "세탁기", "냉장고", "에어컨", "보일러", "정수기", "수전", "거울", "싱크대", "욕조",
-            "화장실 타일", "실리콘", "거울", "유리", "스테인리스", "벽지", "바닥", "천장", "문", "창문"
-        ],
-        "specific_problem": [
-            # 구체적인 문제
-            "기름때", "물때", "곰팡이", "녹", "얼룩",
-            "누수", "누전", "단락", "화재", "파손",
-            "부식", "변색", "탈색", "찌그러짐", "찢어짐"
-        ]
-    }
+    # 모든 경우 임베딩 기반 구체성 판단
+    is_specific = embedding_based_specificity(user_message)
     
-    # 컨텍스트별 구체적인 답변 패턴
-    context_specific_answers = {
-        "grease": ["후라이팬", "팬", "인덕션", "가스레인지", "벽지", "벽면", "바닥", "옷", "직물"],
-        "mold": ["화장실", "타일", "실리콘", "벽지", "벽면", "천장", "옷장", "서랍", "부엌", "싱크대"],
-        "water_stain": ["화장실", "거울", "유리", "싱크대", "수도꼭지", "수전", "샤워부스", "욕조", "세탁기"],
-        "rust": ["수도꼭지", "파이프", "자전거", "금속", "도구", "공구", "자동차"],
-        "cleaning": ["화장실", "부엌", "거실", "침실", "베란다"]
-    }
-    
-    # 컨텍스트가 있는 경우 (추가 질문에 대한 답변)
-    if context and context in context_specific_answers:
-        specific_answers = context_specific_answers[context]
-        if any(answer in user_message for answer in specific_answers):
-            return True, context
-    
-    # 구체적인 대상과 문제가 모두 있는지 확인
-    has_specific_object = any(pattern in user_message for pattern in specific_patterns["specific_object"])
-    has_specific_problem = any(pattern in user_message for pattern in specific_patterns["specific_problem"])
-    
-    # 구체적인 대상과 문제가 모두 있어야 구체적인 질문
-    if has_specific_object and has_specific_problem:
+    if is_specific:
         return True, "specific"
-    
-    # 그 외의 경우는 구체적이지 않음
-    return False, "general"
+    else:
+        return False, "general"
 
 def generate_clarification_question(user_message: str, question_type: str) -> str:
     """구체적이지 않은 질문에 대한 추가 질문 생성"""
@@ -137,7 +155,7 @@ def generate_clarification_question(user_message: str, question_type: str) -> st
         conversation_manager.question_context = "cleaning"
         return """청소는 공간에 따라 방법이 다릅니다.
 
-어떤 공간을 청소하고 싶으신가요?
+어떤 공간용을 청소하고 싶으신가요?
 
 • 화장실
 • 부엌
@@ -146,6 +164,35 @@ def generate_clarification_question(user_message: str, question_type: str) -> st
 • 베란다
 
 구체적인 공간을 알려주시면 더 정확한 방법을 안내해드릴게요!"""
+
+    elif any(keyword in user_message for keyword in ["막힘", "뚫기", "막힌", "뚫린", "배수", "하수"]):
+        conversation_manager.question_context = "clog"
+        return """배수구나 변기 막힘은 위치에 따라 해결 방법이 다릅니다.
+
+어디가 막혔나요?
+
+• 변기
+• 화장실 배수구
+• 싱크대 배수구
+• 욕조/샤워기 배수구
+• 세면대 배수구
+• 기타
+
+구체적인 위치를 알려주시면 더 정확한 방법을 안내해드릴게요!"""
+
+    elif any(keyword in user_message for keyword in ["고장", "작동안함", "안됨", "안돼", "문제", "이상", "오류"]):
+        conversation_manager.question_context = "repair"
+        return """고장이나 문제는 대상에 따라 해결 방법이 다릅니다.
+
+어떤 것이 고장났나요?
+
+• 문고리/자물쇠
+• 서랍/옷장
+• 가구 (침대, 소파, 책상, 의자)
+• 가전제품
+• 기타
+
+구체적인 대상을 알려주시면 더 정확한 방법을 안내해드릴게요!"""
 
     else:
         conversation_manager.question_context = "general"
