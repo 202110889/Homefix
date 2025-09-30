@@ -1,7 +1,7 @@
 import axios from "axios";
 
 // 기본 API 설정
-const DEFAULT_BASE_URL = "http://172.30.1.6:8000";
+const DEFAULT_BASE_URL = "http://172.16.206.176:8000";
 
 class ApiConfig {
   private baseUrl: string = DEFAULT_BASE_URL;
@@ -9,8 +9,26 @@ class ApiConfig {
   private isInitialized: boolean = false;
 
   constructor() {
+    // 잘못된 IP 캐시 강제 초기화
+    this.clearInvalidCache();
     this.loadConfig();
     this.initialize();
+  }
+
+  // 잘못된 IP 캐시 초기화
+  private clearInvalidCache() {
+    try {
+      const savedConfig = localStorage.getItem("apiConfig");
+      if (savedConfig) {
+        const config = JSON.parse(savedConfig);
+        if (config.baseUrl && config.baseUrl.includes("172.16.206.152")) {
+          console.log("잘못된 IP 캐시 감지, 강제 초기화");
+          localStorage.removeItem("apiConfig");
+        }
+      }
+    } catch (error) {
+      console.warn("캐시 초기화 실패:", error);
+    }
   }
 
   // 설정 로드
@@ -19,7 +37,14 @@ class ApiConfig {
       const savedConfig = localStorage.getItem("apiConfig");
       if (savedConfig) {
         const config = JSON.parse(savedConfig);
-        this.baseUrl = config.baseUrl || DEFAULT_BASE_URL;
+        // 잘못된 IP가 저장되어 있으면 기본값 사용
+        if (config.baseUrl && config.baseUrl.includes("172.16.206.152")) {
+          console.log("잘못된 IP 감지, 기본값으로 초기화");
+          this.baseUrl = DEFAULT_BASE_URL;
+          this.saveConfig(); // 올바른 값으로 다시 저장
+        } else {
+          this.baseUrl = config.baseUrl || DEFAULT_BASE_URL;
+        }
       }
     } catch (error) {
       console.warn("설정 로드 실패:", error);
@@ -44,16 +69,20 @@ class ApiConfig {
   private async initialize() {
     if (this.isInitialized) return;
 
-    console.log("🔍 서버 자동 감지 시작...");
+    console.log("🔧 고정 IP 사용:", this.baseUrl);
 
-    // 백그라운드에서 자동 감지 실행
+    // 자동 감지 대신 고정 IP 사용
     setTimeout(async () => {
       try {
-        await this.autoDetectServer();
+        const isConnected = await this.checkConnection();
+        if (isConnected) {
+          console.log("✅ 서버 연결 확인:", this.baseUrl);
+        } else {
+          console.warn("⚠️ 서버 연결 실패:", this.baseUrl);
+        }
         this.isInitialized = true;
-        console.log("✅ 서버 자동 감지 완료:", this.baseUrl);
       } catch (error) {
-        console.warn("⚠️ 서버 자동 감지 실패, 기본 설정 사용:", this.baseUrl);
+        console.warn("⚠️ 서버 연결 확인 실패:", error);
         this.isInitialized = true;
       }
     }, 1000); // 1초 후 실행
@@ -88,8 +117,8 @@ class ApiConfig {
 
       // 여러 가능한 IP 주소 시도 (더 많은 범위 포함)
       const possibleIPs = [
+        "172.16.206.176", // 올바른 현재 IP
         "172.30.1.6", // 기존 IP
-        "172.16.203.17", // 현재 IP
         "192.168.1.100",
         "192.168.1.101",
         "192.168.1.102",
@@ -183,8 +212,8 @@ class ApiConfig {
 // 싱글톤 인스턴스
 export const apiConfig = new ApiConfig();
 
-// 백그라운드 모니터링 시작
-apiConfig.startBackgroundMonitoring();
+// 백그라운드 모니터링 비활성화 (고정 IP 사용)
+// apiConfig.startBackgroundMonitoring();
 
 // API 요청을 위한 axios 인스턴스 생성
 export const createApiClient = () => {

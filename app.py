@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from efficientnet import run_pipeline, load_model
-from nlp.nlp import return_solution, chat_with_ai  # ← GPT 기반 해결책 생성 함수 및 채팅 함수
+from nlp.main import return_solution, chat_with_ai  # ← GPT 기반 해결책 생성 함수 및 채팅 함수
 from PIL import Image
 from pydantic import BaseModel
 import io, base64, socket
@@ -80,8 +80,3 @@ async def chat(data: ChatRequest):
         return {"response": response}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"채팅 처리 실패: {str(e)}")
-
-
-# 명령어 -> uvicorn app:app --host 0.0.0.0 --port 8000 --reload
-# FastAPI가 모든 IP에서의 접속을 허용하도록 설정
-# PC랑 앱이랑 같은 WIFI에 속해 있어야 함.
