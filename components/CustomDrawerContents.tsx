@@ -1,133 +1,92 @@
 import { useTheme } from "@/contexts/ThemeContext";
+import { DrawerContentScrollView } from "@react-navigation/drawer";
 import { router } from "expo-router";
-import React from "react";
-import {
-  Dimensions,
-  Image,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+import React, { useEffect, useState } from "react";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import FontSettingItem from "./DrawerContent/FontSettingItem";
+import InquiryItem from "./DrawerContent/InquiryItem";
+import ThemeSettingItem from "./DrawerContent/ThemeSettingItem";
 
-const { width } = Dimensions.get("window");
+export default function CustomDrawerContent(props: any) {
+  const navigation = props.navigation;
+  const { themeColors } = useTheme();
+  const [isFontSettingActive, setIsFontSettingActive] = useState(false);
 
-export default function HomeScreen() {
-  const { isDarkMode, themeColors } = useTheme();
-
-  const handleImageAnalysis = () => {
-    console.log("사진으로 물어보기 클릭됨");
-    router.push({
-      pathname: "/(tabs)/explore",
-      params: { showModal: "true" },
-    });
+  const goToHome = () => {
+    try {
+      router.replace({ pathname: "/(tabs)" });
+    } catch (e) {
+      router.push("/(tabs)");
+    }
   };
 
-  const handleChat = () => {
-    console.log("채팅으로 물어보기 클릭됨");
-    router.push("/(tabs)/chat");
+  // 테마 변경 시 네비게이션 옵션 변경
+  const handleThemeChange = (newTheme: any) => {
+    if (navigation && navigation.setOptions) {
+      navigation.setOptions({
+        drawerStyle: {
+          backgroundColor: newTheme.background,
+        },
+        headerStyle: {
+          backgroundColor: newTheme.headerBackground,
+        },
+        headerTintColor: newTheme.text,
+      });
+    }
   };
-  console.log("HomeScreen colors:", themeColors);
+
+  //themeColors가 바뀔 때 네비게이션 옵션을 자동으로 업데이트
+  useEffect(() => {
+    handleThemeChange(themeColors);
+  }, [themeColors]);
+
+  const handleFontSettingClick = () => {
+    setIsFontSettingActive(!isFontSettingActive);
+  };
+
+  const handleThemeSettingClick = () => {
+    setIsFontSettingActive(false); // FontSetting 비활성화
+  };
+
+  const handleInquiryClick = () => {
+    setIsFontSettingActive(false); // FontSetting 비활성화
+  };
+
   return (
-    <SafeAreaProvider>
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: themeColors.background }]}
-        edges={["top", "left", "right", "bottom"]}
-      >
-        <StatusBar
-          barStyle={isDarkMode ? "light-content" : "dark-content"}
-          backgroundColor={themeColors.background}
-        />
-
-        {/* 헤더 */}
-        <View
-          style={[
-            styles.header,
-            { backgroundColor: themeColors.headerBackground },
-          ]}
-        >
-          <Text style={[styles.title, { color: themeColors.text }]}>
-            홈픽스
-          </Text>
-          <Text style={[styles.subtitle, { color: themeColors.text }]}>
-            집안 문제 해결 전문가
-          </Text>
-        </View>
-
-        <View style={styles.content}>
-          {/* 메인 선택 버튼들 */}
-          <View style={styles.buttonContainer}>
-            <TouchableOpacity
-              style={[
-                styles.mainButton,
-                { backgroundColor: themeColors.buttonBackground },
-              ]}
-              onPress={handleImageAnalysis}
-              activeOpacity={0.8}
-            >
-              <View style={styles.buttonContent}>
-                <View style={styles.iconContainer}>
-                  <Image
-                    source={require("@/assets/images/camera.png")}
-                    style={[styles.buttonIcon, { tintColor: themeColors.text }]}
-                  />
-                </View>
-                <Text style={[styles.buttonTitle, { color: themeColors.text }]}>
-                  사진으로 물어보기
-                </Text>
-                <Text
-                  style={[
-                    styles.buttonDescription,
-                    { color: themeColors.text },
-                  ]}
-                >
-                  문제가 있는 곳을 사진으로 찍어서{"\n"}정확한 해결책을
-                  받아보세요
-                </Text>
-              </View>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[
-                styles.mainButton,
-                { backgroundColor: themeColors.buttonBackground },
-              ]}
-              onPress={handleChat}
-              activeOpacity={0.8}
-            >
-              <View style={styles.buttonContent}>
-                <View style={styles.iconContainer}>
-                  <Image
-                    source={require("@/assets/images/add-image.png")}
-                    style={[styles.buttonIcon, { tintColor: themeColors.text }]}
-                  />
-                </View>
-                <Text style={[styles.buttonTitle, { color: themeColors.text }]}>
-                  채팅으로 물어보기
-                </Text>
-                <Text
-                  style={[
-                    styles.buttonDescription,
-                    { color: themeColors.text },
-                  ]}
-                >
-                  궁금한 집안 문제를{"\n"}직접 질문해보세요
-                </Text>
-              </View>
-            </TouchableOpacity>
+    // apply theme background to the drawer container so the drawer visually updates
+    <DrawerContentScrollView
+      {...props}
+      style={{ backgroundColor: themeColors.background }}
+      contentContainerStyle={{ flex: 1 }}
+    >
+      <View style={[styles.headerBar, { borderBottomColor: themeColors.text }]}>
+        <Text style={[styles.settingsTitle, { color: themeColors.text }]}>
+          HomeFix
+        </Text>
+        <TouchableOpacity style={styles.homeButton} onPress={goToHome}>
+          <View style={styles.homeIcon}>
+            <View
+              style={[styles.homeRoof, { borderBottomColor: themeColors.text }]}
+            />
+            <View
+              style={[styles.homeBase, { backgroundColor: themeColors.text }]}
+            />
           </View>
-
-          {/* 하단 안내 */}
-          <View style={styles.footer}>
-            <Text style={[styles.footerText, { color: themeColors.text }]}>
-              💡 더 정확한 답변을 위해 구체적으로 질문해주세요
-            </Text>
-          </View>
-        </View>
-      </SafeAreaView>
-    </SafeAreaProvider>
+        </TouchableOpacity>
+      </View>
+      {/* pass themeColors down so items can render with the current theme immediately */}
+      <ThemeSettingItem
+        styles={styles}
+        onThemeChange={handleThemeChange}
+        onPress={handleThemeSettingClick}
+      />
+      <FontSettingItem
+        styles={styles}
+        isActive={isFontSettingActive}
+        onPress={handleFontSettingClick}
+      />
+      <InquiryItem styles={styles} onPress={handleInquiryClick} />
+    </DrawerContentScrollView>
   );
 }
 

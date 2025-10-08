@@ -121,11 +121,8 @@ export default function ExploreScreen() {
   };
 
   const goBack = () => {
-    router.replace("/");
-  };
-
-  const goToHome = () => {
-    router.replace("/");
+    router.replace("/(tabs)");
+    setShowImagePicker(false); // 모달 닫기(IOS에서 뒤로가기 버튼 대응)
   };
 
   return (
@@ -134,7 +131,7 @@ export default function ExploreScreen() {
         style={[styles.container, { backgroundColor: themeColors.background }]}
         edges={["top", "left", "right", "bottom"]}
       >
-        {/* 상단 메뉴 바 */}
+        {/* 상단 메뉴 바
         <View style={styles.headerBar}>
           <TouchableOpacity
             style={styles.menuButton}
@@ -168,7 +165,7 @@ export default function ExploreScreen() {
               />
             </View>
           </TouchableOpacity>
-        </View>
+        </View> */}
 
         {/* 이미지 미리보기 화면 */}
         {selectedImageUri && !isLoading && (
@@ -321,14 +318,14 @@ export default function ExploreScreen() {
           </View>
         </Modal>
 
-        {/* 설정 모달 */}
+        {/* 설정 모달
         <Modal
           visible={showSettings}
           transparent={true}
           animationType="slide"
           onRequestClose={() => setShowSettings(false)}
         >
-          <View style={styles.modalOverlay}>
+          <View style={styles.settingModalOverlay}>
             <View
               style={[
                 styles.settingsPanel,
@@ -387,7 +384,7 @@ export default function ExploreScreen() {
               </View>
             </View>
           </View>
-        </Modal>
+        </Modal> */}
       </SafeAreaView>
     </SafeAreaProvider>
   );
@@ -447,7 +444,7 @@ const styles = StyleSheet.create({
     borderRadius: 1,
   },
   // 설정 모달 스타일
-  modalOverlay: {
+  settingModalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.5)",
     justifyContent: "flex-start",

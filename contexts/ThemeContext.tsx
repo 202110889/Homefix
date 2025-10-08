@@ -1,5 +1,11 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 
 interface ThemeContextType {
   isDarkMode: boolean;
@@ -46,6 +52,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({
     const newMode = !isDarkMode;
     setIsDarkMode(newMode);
     AsyncStorage.setItem("isDarkMode", JSON.stringify(newMode));
+    console.log("Theme has been set to:", newMode ? "Dark" : "Light");
   };
 
   // 앱 시작 시 저장된 테마 설정 불러오기
@@ -62,10 +69,12 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({
     };
     loadTheme();
   }, []);
-
+  // context value를 메모이제이션하여 불필요한 리렌더링 방지
+  const value = useMemo(() => {
+    console.log("Updating context provider: ", { isDarkMode, themeColors });
+    return { isDarkMode, themeColors, toggleDarkMode };
+  }, [isDarkMode]);
   return (
-    <ThemeContext.Provider value={{ isDarkMode, toggleDarkMode, themeColors }}>
-      {children}
-    </ThemeContext.Provider>
+    <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>
   );
 };
