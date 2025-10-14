@@ -1,12 +1,12 @@
 import TypingText from "@/components/TypingText";
 import { createApiClient } from "@/config/api";
+import { useFontScale } from "@/contexts/FontScaleContext";
 import { useTheme } from "@/contexts/ThemeContext";
-import { router } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
   Alert,
   KeyboardAvoidingView,
-  Modal,
+  Linking,
   Platform,
   ScrollView,
   StyleSheet,
@@ -17,16 +17,35 @@ import {
 } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 
+// Interfaces for Recommendation Feature
+interface RecoItem {
+  title: string;
+  price?: number | null;
+  link: string;
+  imageUrl?: string | null;
+  rating?: number | null;
+  ad?: boolean;
+}
+
+interface RecoGroup {
+  group: string;
+  required: boolean;
+  items: RecoItem[];
+}
+
+// Updated Message Interface
 interface Message {
   id: string;
   text: string;
   isUser: boolean;
   timestamp: Date;
   isTyping?: boolean; // 타이핑 효과 여부
+  recoGroups?: RecoGroup[]; // 제품/준비물 추천 결과
 }
 
 export default function ChatScreen() {
   const { themeColors } = useTheme();
+  const { fontScale } = useFontScale();
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "1",
@@ -37,17 +56,12 @@ export default function ChatScreen() {
   ]);
   const [inputText, setInputText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
 
   const scrollToBottom = () => {
     setTimeout(() => {
       scrollViewRef.current?.scrollToEnd({ animated: true });
     }, 100);
-  };
-
-  const goToHome = () => {
-    router.replace("/");
   };
 
   useEffect(() => {
@@ -83,6 +97,29 @@ export default function ChatScreen() {
       };
 
       setMessages((prev) => [...prev, botMessage]);
+
+      // 준비물/제품 추천도 함께 요청 (사용자 질문 기반)
+      try {
+        const recoRes = await apiClient.post("/recommend/", {
+          problem: inputText.trim(),
+          location: "",
+        });
+        const groups: RecoGroup[] = recoRes?.data?.groups || [];
+        if (groups.length > 0) {
+          const recoMessage: Message = {
+            id: (Date.now() + 2).toString(),
+            text: "아래 추천 준비물을 참고해 보세요.",
+            isUser: false,
+            timestamp: new Date(),
+            isTyping: true,
+            recoGroups: groups,
+          };
+          setMessages((prev) => [...prev, recoMessage]);
+        }
+      } catch (e) {
+        // 추천 실패는 무시하고 채팅만 표시
+        console.warn("추천 요청 실패", e);
+      }
     } catch (error: any) {
       console.error("채팅 에러:", error?.message || error);
       Alert.alert("오류", "메시지를 전송할 수 없습니다.");
@@ -115,45 +152,10 @@ export default function ChatScreen() {
         style={[styles.container, { backgroundColor: themeColors.background }]}
         edges={["top", "left", "right", "bottom"]}
       >
-        {/* 상단 메뉴 바 */}
-        <View style={styles.headerBar}>
-          <TouchableOpacity
-            style={styles.menuButton}
-            onPress={() => setShowSettings(true)}
-          >
-            <View style={styles.menuIcon}>
-              <View
-                style={[styles.menuLine, { backgroundColor: themeColors.text }]}
-              />
-              <View
-                style={[styles.menuLine, { backgroundColor: themeColors.text }]}
-              />
-              <View
-                style={[styles.menuLine, { backgroundColor: themeColors.text }]}
-              />
-            </View>
-          </TouchableOpacity>
-
-          <View style={styles.spacer} />
-
-          <TouchableOpacity style={styles.homeButton} onPress={goToHome}>
-            <View style={styles.homeIcon}>
-              <View
-                style={[
-                  styles.homeRoof,
-                  { borderBottomColor: themeColors.text },
-                ]}
-              />
-              <View
-                style={[styles.homeBase, { backgroundColor: themeColors.text }]}
-              />
-            </View>
-          </TouchableOpacity>
-        </View>
-
         <KeyboardAvoidingView
           style={styles.keyboardContainer}
           behavior={Platform.OS === "ios" ? "padding" : "height"}
+          keyboardVerticalOffset={70}
         >
           <ScrollView
             ref={scrollViewRef}
@@ -183,6 +185,10 @@ export default function ChatScreen() {
                           styles.messageText,
                           message.isUser ? styles.userText : styles.botText,
                           { color: themeColors.text },
+                          // 3. 폰트 스케일 적용
+                          {
+                            fontSize: styles.messageText.fontSize * fontScale,
+                          },
                         ]}
                         onComplete={() => {
                           setMessages((prev) =>
@@ -200,17 +206,152 @@ export default function ChatScreen() {
                           styles.messageText,
                           message.isUser ? styles.userText : styles.botText,
                           { color: themeColors.text },
+                          // 3. 폰트 스케일 적용
+                          {
+                            fontSize: styles.messageText.fontSize * fontScale,
+                          },
                         ]}
                       >
                         {message.text}
                       </Text>
                     ))}
+
+                  {/* 준비물/제품 추천 카드 렌더링 */}
+                  {!message.isUser &&
+                    message.recoGroups &&
+                    message.recoGroups.length > 0 && (
+                      <View
+                        style={[
+                          styles.recoCard,
+                          { borderColor: themeColors.borderColor },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.recoTitle,
+                            { color: themeColors.text },
+                            // 3. 폰트 스케일 적용
+                            {
+                              fontSize: styles.recoTitle.fontSize * fontScale,
+                            },
+                          ]}
+                        >
+                          준비물 추천
+                        </Text>
+                        <View style={styles.recoGroupsContainer}>
+                          {message.recoGroups.map((g, idx) => (
+                            <View
+                              key={`${message.id}-g-${idx}`}
+                              style={styles.recoGroupRow}
+                            >
+                              <View style={styles.recoGroupHeader}>
+                                <Text
+                                  style={[
+                                    styles.recoGroupName,
+                                    { color: themeColors.text },
+                                    // 3. 폰트 스케일 적용
+                                    {
+                                      fontSize:
+                                        styles.recoGroupName.fontSize *
+                                        fontScale,
+                                    },
+                                  ]}
+                                >
+                                  {g.group}
+                                </Text>
+                                <Text
+                                  style={[
+                                    styles.recoRequired,
+                                    { color: themeColors.text },
+                                    // 3. 폰트 스케일 적용
+                                    {
+                                      fontSize:
+                                        styles.recoRequired.fontSize *
+                                        fontScale,
+                                    },
+                                  ]}
+                                >
+                                  {g.required ? "필수" : "선택"}
+                                </Text>
+                              </View>
+                              <View style={styles.recoItems}>
+                                {g.items.map((it, jdx) => (
+                                  <TouchableOpacity
+                                    key={`${message.id}-g-${idx}-i-${jdx}`}
+                                    style={[
+                                      styles.recoItem,
+                                      {
+                                        borderColor: themeColors.borderColor,
+                                      },
+                                    ]}
+                                    onPress={() => Linking.openURL(it.link)}
+                                    activeOpacity={0.7}
+                                  >
+                                    <Text
+                                      style={[
+                                        styles.recoItemTitle,
+                                        { color: themeColors.text },
+                                        // 3. 폰트 스케일 적용
+                                        {
+                                          fontSize:
+                                            styles.recoItemTitle.fontSize *
+                                            fontScale,
+                                        },
+                                      ]}
+                                      numberOfLines={1}
+                                    >
+                                      {it.title}
+                                    </Text>
+                                    <View style={styles.recoMetaRow}>
+                                      {typeof it.price === "number" && (
+                                        <Text
+                                          style={[
+                                            styles.recoMeta,
+                                            { color: themeColors.text },
+                                            // 3. 폰트 스케일 적용
+                                            {
+                                              fontSize:
+                                                styles.recoMeta.fontSize *
+                                                fontScale,
+                                            },
+                                          ]}
+                                        >
+                                          {it.price.toLocaleString()}원
+                                        </Text>
+                                      )}
+                                      {typeof it.rating === "number" && (
+                                        <Text
+                                          style={[
+                                            styles.recoMeta,
+                                            { color: themeColors.text },
+                                            // 3. 폰트 스케일 적용
+                                            {
+                                              fontSize:
+                                                styles.recoMeta.fontSize *
+                                                fontScale,
+                                            },
+                                          ]}
+                                        >
+                                          ★ {it.rating.toFixed(1)}
+                                        </Text>
+                                      )}
+                                    </View>
+                                  </TouchableOpacity>
+                                ))}
+                              </View>
+                            </View>
+                          ))}
+                        </View>
+                      </View>
+                    )}
                 </View>
                 <Text
                   style={[
                     styles.timestamp,
                     message.isUser ? styles.userTimestamp : styles.botTimestamp,
                     { color: themeColors.text },
+                    // 3. 폰트 스케일 적용
+                    { fontSize: styles.timestamp.fontSize * fontScale },
                   ]}
                 >
                   {formatTime(message.timestamp)}
@@ -226,6 +367,8 @@ export default function ChatScreen() {
                       styles.messageText,
                       styles.botText,
                       { color: themeColors.text },
+                      // 3. 폰트 스케일 적용
+                      { fontSize: styles.messageText.fontSize * fontScale },
                     ]}
                   >
                     입력 중...
@@ -243,6 +386,8 @@ export default function ChatScreen() {
                   backgroundColor: themeColors.inputBackground,
                   color: themeColors.text,
                 },
+                // 3. 폰트 스케일 적용
+                { fontSize: styles.textInput.fontSize * fontScale },
               ]}
               value={inputText}
               onChangeText={setInputText}
@@ -259,78 +404,18 @@ export default function ChatScreen() {
               onPress={sendMessage}
               disabled={!inputText.trim() || isLoading}
             >
-              <Text style={styles.sendButtonText}>전송</Text>
+              <Text
+                style={[
+                  styles.sendButtonText,
+                  // 3. 폰트 스케일 적용
+                  { fontSize: styles.sendButtonText.fontSize * fontScale },
+                ]}
+              >
+                전송
+              </Text>
             </TouchableOpacity>
           </View>
         </KeyboardAvoidingView>
-
-        {/* 설정 모달 */}
-        <Modal
-          visible={showSettings}
-          transparent={true}
-          animationType="slide"
-          onRequestClose={() => setShowSettings(false)}
-        >
-          <View style={styles.modalOverlay}>
-            <View
-              style={[
-                styles.settingsPanel,
-                { backgroundColor: themeColors.background },
-              ]}
-            >
-              <View
-                style={[
-                  styles.settingsHeader,
-                  { borderBottomColor: themeColors.borderColor },
-                ]}
-              >
-                <Text
-                  style={[styles.settingsTitle, { color: themeColors.text }]}
-                >
-                  HomeFix
-                </Text>
-                <TouchableOpacity
-                  style={styles.closeButton}
-                  onPress={() => setShowSettings(false)}
-                >
-                  <Text style={styles.closeButtonText}>✕</Text>
-                </TouchableOpacity>
-              </View>
-
-              <View style={styles.settingsContent}>
-                <TouchableOpacity
-                  style={styles.settingsItem}
-                  onPress={() => {
-                    setShowSettings(false);
-                    goToHome();
-                  }}
-                >
-                  <View style={styles.settingsIcon}>
-                    <View style={styles.homeIcon}>
-                      <View
-                        style={[
-                          styles.homeRoof,
-                          { borderBottomColor: themeColors.text },
-                        ]}
-                      />
-                      <View
-                        style={[
-                          styles.homeBase,
-                          { backgroundColor: themeColors.text },
-                        ]}
-                      />
-                    </View>
-                  </View>
-                  <Text
-                    style={[styles.settingsText, { color: themeColors.text }]}
-                  >
-                    홈으로
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        </Modal>
       </SafeAreaView>
     </SafeAreaProvider>
   );
@@ -340,112 +425,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#f5f5f5",
-  },
-  headerBar: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 20,
-    paddingVertical: 15,
-    backgroundColor: "transparent",
-    borderBottomWidth: 1,
-    borderBottomColor: "#e0e0e0",
-  },
-  spacer: {
-    flex: 1,
-  },
-  menuButton: {
-    padding: 5,
-  },
-  menuIcon: {
-    width: 20,
-    height: 15,
-    justifyContent: "space-between",
-  },
-  menuLine: {
-    height: 2,
-    borderRadius: 1,
-  },
-  homeButton: {
-    padding: 5,
-  },
-  homeIcon: {
-    width: 20,
-    height: 15,
-    justifyContent: "flex-end",
-    alignItems: "center",
-  },
-  homeRoof: {
-    width: 0,
-    height: 0,
-    borderLeftWidth: 8,
-    borderRightWidth: 8,
-    borderBottomWidth: 6,
-    borderLeftColor: "transparent",
-    borderRightColor: "transparent",
-    marginBottom: 2,
-  },
-  homeBase: {
-    width: 12,
-    height: 6,
-    borderRadius: 1,
-  },
-  // 설정 모달 스타일
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-    justifyContent: "flex-start",
-    alignItems: "flex-start",
-  },
-  settingsPanel: {
-    width: "70%",
-    height: "100%",
-    borderTopRightRadius: 20,
-    borderBottomRightRadius: 20,
-  },
-  settingsHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: 20,
-    borderBottomWidth: 1,
-  },
-  settingsTitle: {
-    fontSize: 24,
-    fontWeight: "bold",
-  },
-  closeButton: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: "#f0f0f0",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  closeButtonText: {
-    fontSize: 16,
-    color: "#666",
-  },
-  settingsContent: {
-    padding: 20,
-  },
-  settingsItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingVertical: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: "#e0e0e0",
-  },
-  settingsIcon: {
-    width: 40,
-    height: 40,
-    marginRight: 15,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  settingsText: {
-    fontSize: 16,
   },
   keyboardContainer: {
     flex: 1,
@@ -539,5 +518,54 @@ const styles = StyleSheet.create({
     color: "white",
     fontSize: 16,
     fontWeight: "600",
+  },
+  // Recommendation Card Styles
+  recoCard: {
+    marginTop: 12,
+    borderTopWidth: 1,
+    paddingTop: 12,
+  },
+  recoTitle: {
+    fontSize: 15,
+    fontWeight: "bold",
+    marginBottom: 8,
+  },
+  recoGroupsContainer: {},
+  recoGroupRow: {
+    marginBottom: 10,
+  },
+  recoGroupHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 6,
+  },
+  recoGroupName: {
+    fontWeight: "600",
+    fontSize: 14,
+  },
+  recoRequired: {
+    fontSize: 13,
+    opacity: 0.8,
+  },
+  recoItems: {
+    gap: 6,
+  },
+  recoItem: {
+    padding: 8,
+    borderWidth: 1,
+    borderRadius: 8,
+  },
+  recoItemTitle: {
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  recoMetaRow: {
+    flexDirection: "row",
+    gap: 12,
+    marginTop: 4,
+  },
+  recoMeta: {
+    fontSize: 12,
+    opacity: 0.7,
   },
 });

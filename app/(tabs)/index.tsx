@@ -1,3 +1,4 @@
+import { useFontScale } from "@/contexts/FontScaleContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { router } from "expo-router";
 import React from "react";
@@ -16,6 +17,7 @@ const { width } = Dimensions.get("window");
 
 export default function HomeScreen() {
   const { isDarkMode, themeColors } = useTheme();
+  const { fontScale } = useFontScale();
 
   const handleImageAnalysis = () => {
     console.log("사진으로 물어보기 클릭됨");
@@ -29,7 +31,7 @@ export default function HomeScreen() {
     console.log("채팅으로 물어보기 클릭됨");
     router.push("/(tabs)/chat");
   };
-  console.log("HomeScreen colors:", themeColors);
+
   return (
     <SafeAreaProvider>
       <SafeAreaView
@@ -48,10 +50,26 @@ export default function HomeScreen() {
             { backgroundColor: themeColors.headerBackground },
           ]}
         >
-          <Text style={[styles.title, { color: themeColors.text }]}>
+          <Text
+            style={[
+              styles.title,
+              {
+                color: themeColors.text,
+                fontSize: styles.title.fontSize * fontScale,
+              },
+            ]}
+          >
             홈픽스
           </Text>
-          <Text style={[styles.subtitle, { color: themeColors.text }]}>
+          <Text
+            style={[
+              styles.subtitle,
+              {
+                color: themeColors.text,
+                fontSize: styles.subtitle.fontSize * fontScale,
+              },
+            ]}
+          >
             집안 문제 해결 전문가
           </Text>
         </View>
@@ -74,13 +92,24 @@ export default function HomeScreen() {
                     style={[styles.buttonIcon, { tintColor: themeColors.text }]}
                   />
                 </View>
-                <Text style={[styles.buttonTitle, { color: themeColors.text }]}>
+                <Text
+                  style={[
+                    styles.buttonTitle,
+                    {
+                      color: themeColors.text,
+                      fontSize: styles.buttonTitle.fontSize * fontScale,
+                    },
+                  ]}
+                >
                   사진으로 물어보기
                 </Text>
                 <Text
                   style={[
                     styles.buttonDescription,
-                    { color: themeColors.text },
+                    {
+                      color: themeColors.text,
+                      fontSize: styles.buttonDescription.fontSize * fontScale,
+                    },
                   ]}
                 >
                   문제가 있는 곳을 사진으로 찍어서{"\n"}정확한 해결책을
@@ -104,13 +133,24 @@ export default function HomeScreen() {
                     style={[styles.buttonIcon, { tintColor: themeColors.text }]}
                   />
                 </View>
-                <Text style={[styles.buttonTitle, { color: themeColors.text }]}>
+                <Text
+                  style={[
+                    styles.buttonTitle,
+                    {
+                      color: themeColors.text,
+                      fontSize: styles.buttonTitle.fontSize * fontScale,
+                    },
+                  ]}
+                >
                   채팅으로 물어보기
                 </Text>
                 <Text
                   style={[
                     styles.buttonDescription,
-                    { color: themeColors.text },
+                    {
+                      color: themeColors.text,
+                      fontSize: styles.buttonDescription.fontSize * fontScale,
+                    },
                   ]}
                 >
                   궁금한 집안 문제를{"\n"}직접 질문해보세요
@@ -121,7 +161,15 @@ export default function HomeScreen() {
 
           {/* 하단 안내 */}
           <View style={styles.footer}>
-            <Text style={[styles.footerText, { color: themeColors.text }]}>
+            <Text
+              style={[
+                styles.footerText,
+                {
+                  color: themeColors.text,
+                  fontSize: styles.footerText.fontSize * fontScale,
+                },
+              ]}
+            >
               💡 더 정확한 답변을 위해 구체적으로 질문해주세요
             </Text>
           </View>

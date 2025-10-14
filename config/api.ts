@@ -1,7 +1,7 @@
 import axios from "axios";
 
 // 기본 API 설정
-const DEFAULT_BASE_URL = "172.17.209.104:8000";
+const DEFAULT_BASE_URL = "http://172.17.76.36:8000";
 
 class ApiConfig {
   private baseUrl: string = DEFAULT_BASE_URL;
@@ -86,6 +86,10 @@ class ApiConfig {
         this.isInitialized = true;
       }
     }, 1000); // 1초 후 실행
+    setTimeout(() => {
+      this.autoDetectServer();
+      this.isInitialized = true;
+    }, 3000); // 3초 후 실행
   }
 
   // 현재 Base URL 반환
@@ -117,10 +121,9 @@ class ApiConfig {
 
       // 여러 가능한 IP 주소 시도 (더 많은 범위 포함)
       const possibleIPs = [
-        "172.16.206.176", // 올바른 현재 IP
         "172.17.209.104", // 기존 IP
-        "192.168.1.100",
-        "192.168.1.101",
+        "172.30.1.99",
+        "172.17.76.36",
         "192.168.1.102",
         "192.168.0.100",
         "192.168.0.101",
@@ -194,7 +197,6 @@ class ApiConfig {
         return false;
       }
     }
-
     return true;
   }
 
@@ -219,7 +221,7 @@ export const apiConfig = new ApiConfig();
 export const createApiClient = () => {
   return axios.create({
     baseURL: apiConfig.getBaseUrl(),
-    timeout: 10000,
+    timeout: 15000,
     headers: {
       "Content-Type": "application/json",
     },

@@ -1,4 +1,5 @@
 import CustomDrawerContent from "@/components/CustomDrawerContents";
+import { FontScaleProvider } from "@/contexts/FontScaleContext";
 import { ThemeProvider, useTheme } from "@/contexts/ThemeContext";
 import { router } from "expo-router";
 import { Drawer } from "expo-router/drawer";
@@ -6,17 +7,6 @@ import { StyleSheet, TouchableOpacity, View } from "react-native";
 
 function DrawerWrapper() {
   const { themeColors } = useTheme();
-  // const [colors, setColors] = useState({
-  //   text: "#333333",
-  //   background: "#FFFFFF",
-  // });
-
-  // useEffect(() => {
-  //   setColors({
-  //     text: themeColors.text,
-  //     background: themeColors.headerBackground,
-  //   });
-  // }, [themeColors]);
 
   const goToHome = () => {
     try {
@@ -64,7 +54,9 @@ function DrawerWrapper() {
 export default function _Layout({ screenOptions }: { screenOptions?: any }) {
   return (
     <ThemeProvider>
-      <DrawerWrapper />
+      <FontScaleProvider>
+        <DrawerWrapper />
+      </FontScaleProvider>
     </ThemeProvider>
   );
 }

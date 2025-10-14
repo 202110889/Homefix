@@ -71,7 +71,6 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({
   }, []);
   // context value를 메모이제이션하여 불필요한 리렌더링 방지
   const value = useMemo(() => {
-    console.log("Updating context provider: ", { isDarkMode, themeColors });
     return { isDarkMode, themeColors, toggleDarkMode };
   }, [isDarkMode]);
   return (

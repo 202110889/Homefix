@@ -1,9 +1,10 @@
 import { createApiClient } from "@/config/api";
+import { useFontScale } from "@/contexts/FontScaleContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import * as ImageManipulator from "expo-image-manipulator";
 import * as ImagePicker from "expo-image-picker";
-import { router, useLocalSearchParams } from "expo-router";
-import React, { useEffect, useState } from "react";
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -18,19 +19,50 @@ import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 
 export default function ExploreScreen() {
   const { themeColors } = useTheme();
+  const { fontScale } = useFontScale();
   const params = useLocalSearchParams();
   const [base64Data, setBase64Data] = useState<string | null>(null);
   const [selectedImageUri, setSelectedImageUri] = useState<string | null>(null);
   const [showImagePicker, setShowImagePicker] = useState(false); // 처음에는 모달 숨김
   const [isLoading, setIsLoading] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
+  const [isLeaving, setIsLeaving] = useState(false);
 
+  console.log("ExploreScreen params:", params);
+  console.log("selectedImageUri:", selectedImageUri);
+  console.log("isLoading:", isLoading);
+  console.log("showImagePicker:", showImagePicker);
+  console.log("isLeaving:", isLeaving);
   // 홈에서 버튼을 누르면 모달 표시
-  useEffect(() => {
+  const modalEffect = useCallback(() => {
+    // 이 코드는 ExploreScreen이 포커싱될 때마다 실행됩니다.
     if (params.showModal === "true" && !selectedImageUri && !isLoading) {
+      console.log("모달 표시 트리거됨");
       setShowImagePicker(true);
     }
+    // 화면을 벗어날 때(unfocus) 실행될 정리(cleanup) 함수입니다.
+    // 사용자가 다른 탭으로 이동하거나 뒤로 갈 때 모달이 확실히 닫히도록 보장합니다.
+    return () => {
+      setShowImagePicker(false);
+    };
   }, [params.showModal, selectedImageUri, isLoading]);
+  useFocusEffect(() => {
+    modalEffect();
+  });
+
+  useEffect(() => {
+    if (isLeaving) {
+      // 1. 먼저 모달을 닫습니다.
+      setShowImagePicker(false);
+      // 상태를 다시 원상 복구하여, 다시 돌아왔을 때를 대비합니다.
+      setIsLeaving(false);
+
+      // 2. 모달이 닫힌 후(즉, 다음 렌더링 사이클에서) 화면을 전환합니다.
+      // requestAnimationFrame을 사용해 다음 프레임에 실행되도록 보장합니다.
+      requestAnimationFrame(() => {
+        router.replace("/(tabs)");
+      });
+    }
+  }, [isLeaving]);
 
   useEffect(() => {
     // 카메라 및 갤러리 권한 요청
@@ -121,8 +153,8 @@ export default function ExploreScreen() {
   };
 
   const goBack = () => {
-    router.replace("/(tabs)");
-    setShowImagePicker(false); // 모달 닫기(IOS에서 뒤로가기 버튼 대응)
+    // setShowImagePicker(false); // 모달 닫기(IOS에서 뒤로가기 버튼 대응)
+    setIsLeaving(true);
   };
 
   return (
@@ -131,42 +163,6 @@ export default function ExploreScreen() {
         style={[styles.container, { backgroundColor: themeColors.background }]}
         edges={["top", "left", "right", "bottom"]}
       >
-        {/* 상단 메뉴 바
-        <View style={styles.headerBar}>
-          <TouchableOpacity
-            style={styles.menuButton}
-            onPress={() => setShowSettings(true)}
-          >
-            <View style={styles.menuIcon}>
-              <View
-                style={[styles.menuLine, { backgroundColor: themeColors.text }]}
-              />
-              <View
-                style={[styles.menuLine, { backgroundColor: themeColors.text }]}
-              />
-              <View
-                style={[styles.menuLine, { backgroundColor: themeColors.text }]}
-              />
-            </View>
-          </TouchableOpacity>
-
-          <View style={styles.spacer} />
-
-          <TouchableOpacity style={styles.homeButton} onPress={goToHome}>
-            <View style={styles.homeIcon}>
-              <View
-                style={[
-                  styles.homeRoof,
-                  { borderBottomColor: themeColors.text },
-                ]}
-              />
-              <View
-                style={[styles.homeBase, { backgroundColor: themeColors.text }]}
-              />
-            </View>
-          </TouchableOpacity>
-        </View> */}
-
         {/* 이미지 미리보기 화면 */}
         {selectedImageUri && !isLoading && (
           <>
@@ -176,10 +172,24 @@ export default function ExploreScreen() {
                 { backgroundColor: themeColors.headerBackground },
               ]}
             >
-              <Text style={[styles.title, { color: themeColors.text }]}>
+              <Text
+                style={[
+                  styles.title,
+                  { color: themeColors.text },
+                  // 3. 폰트 스케일 적용
+                  { fontSize: styles.title.fontSize * fontScale },
+                ]}
+              >
                 사진으로 물어보기
               </Text>
-              <Text style={[styles.subtitle, { color: themeColors.text }]}>
+              <Text
+                style={[
+                  styles.subtitle,
+                  { color: themeColors.text },
+                  // 3. 폰트 스케일 적용
+                  { fontSize: styles.subtitle.fontSize * fontScale },
+                ]}
+              >
                 문제가 있는 곳을 사진으로 찍어서 정확한 해결책을 받아보세요
               </Text>
             </View>
@@ -203,7 +213,17 @@ export default function ExploreScreen() {
                 onPress={uploadImage}
                 disabled={isLoading}
               >
-                <Text style={styles.uploadButtonText}>분석하기</Text>
+                <Text
+                  style={[
+                    styles.uploadButtonText,
+                    // 3. 폰트 스케일 적용
+                    {
+                      fontSize: styles.uploadButtonText.fontSize * fontScale,
+                    },
+                  ]}
+                >
+                  분석하기
+                </Text>
               </TouchableOpacity>
             </View>
           </>
@@ -218,10 +238,22 @@ export default function ExploreScreen() {
                 { backgroundColor: themeColors.headerBackground },
               ]}
             >
-              <Text style={[styles.title, { color: themeColors.text }]}>
+              <Text
+                style={[
+                  styles.title,
+                  { color: themeColors.text },
+                  { fontSize: styles.title.fontSize * fontScale },
+                ]}
+              >
                 사진으로 물어보기
               </Text>
-              <Text style={[styles.subtitle, { color: themeColors.text }]}>
+              <Text
+                style={[
+                  styles.subtitle,
+                  { color: themeColors.text },
+                  { fontSize: styles.subtitle.fontSize * fontScale },
+                ]}
+              >
                 문제가 있는 곳을 사진으로 찍어서 정확한 해결책을 받아보세요
               </Text>
             </View>
@@ -241,7 +273,14 @@ export default function ExploreScreen() {
                 ]}
               >
                 <ActivityIndicator size="large" color="#007AFF" />
-                <Text style={[styles.loadingText, { color: themeColors.text }]}>
+                <Text
+                  style={[
+                    styles.loadingText,
+                    { color: themeColors.text },
+                    // 3. 폰트 스케일 적용
+                    { fontSize: styles.loadingText.fontSize * fontScale },
+                  ]}
+                >
                   분석 중...
                 </Text>
               </View>
@@ -254,7 +293,7 @@ export default function ExploreScreen() {
           visible={showImagePicker}
           transparent={true}
           animationType="fade"
-          onRequestClose={() => setShowImagePicker(false)}
+          onRequestClose={goBack}
         >
           <View style={styles.modalOverlay}>
             <View
@@ -263,7 +302,14 @@ export default function ExploreScreen() {
                 { backgroundColor: themeColors.cardBackground },
               ]}
             >
-              <Text style={[styles.modalTitle, { color: themeColors.text }]}>
+              <Text
+                style={[
+                  styles.modalTitle,
+                  { color: themeColors.text },
+                  // 3. 폰트 스케일 적용
+                  { fontSize: styles.modalTitle.fontSize * fontScale },
+                ]}
+              >
                 사진 선택
               </Text>
               <TouchableOpacity
@@ -279,6 +325,10 @@ export default function ExploreScreen() {
                     style={[
                       styles.modalButtonText,
                       { color: themeColors.text },
+                      // 3. 폰트 스케일 적용
+                      {
+                        fontSize: styles.modalButtonText.fontSize * fontScale,
+                      },
                     ]}
                   >
                     촬영하기
@@ -298,6 +348,10 @@ export default function ExploreScreen() {
                     style={[
                       styles.modalButtonText,
                       { color: themeColors.text },
+                      // 3. 폰트 스케일 적용
+                      {
+                        fontSize: styles.modalButtonText.fontSize * fontScale,
+                      },
                     ]}
                   >
                     갤러리에서 선택하기
@@ -309,7 +363,14 @@ export default function ExploreScreen() {
                 onPress={goBack}
               >
                 <Text
-                  style={[styles.backButtonText, { color: themeColors.text }]}
+                  style={[
+                    styles.backButtonText,
+                    { color: themeColors.text },
+                    // 3. 폰트 스케일 적용
+                    {
+                      fontSize: styles.backButtonText.fontSize * fontScale,
+                    },
+                  ]}
                 >
                   뒤로가기
                 </Text>
@@ -317,74 +378,6 @@ export default function ExploreScreen() {
             </View>
           </View>
         </Modal>
-
-        {/* 설정 모달
-        <Modal
-          visible={showSettings}
-          transparent={true}
-          animationType="slide"
-          onRequestClose={() => setShowSettings(false)}
-        >
-          <View style={styles.settingModalOverlay}>
-            <View
-              style={[
-                styles.settingsPanel,
-                { backgroundColor: themeColors.background },
-              ]}
-            >
-              <View
-                style={[
-                  styles.settingsHeader,
-                  { borderBottomColor: themeColors.borderColor },
-                ]}
-              >
-                <Text
-                  style={[styles.settingsTitle, { color: themeColors.text }]}
-                >
-                  HomeFix
-                </Text>
-                <TouchableOpacity
-                  style={styles.closeButton}
-                  onPress={() => setShowSettings(false)}
-                >
-                  <Text style={styles.closeButtonText}>✕</Text>
-                </TouchableOpacity>
-              </View>
-
-              <View style={styles.settingsContent}>
-                <TouchableOpacity
-                  style={styles.settingsItem}
-                  onPress={() => {
-                    setShowSettings(false);
-                    goToHome();
-                  }}
-                >
-                  <View style={styles.settingsIcon}>
-                    <View style={styles.homeIcon}>
-                      <View
-                        style={[
-                          styles.homeRoof,
-                          { borderBottomColor: themeColors.text },
-                        ]}
-                      />
-                      <View
-                        style={[
-                          styles.homeBase,
-                          { backgroundColor: themeColors.text },
-                        ]}
-                      />
-                    </View>
-                  </View>
-                  <Text
-                    style={[styles.settingsText, { color: themeColors.text }]}
-                  >
-                    홈으로
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        </Modal> */}
       </SafeAreaView>
     </SafeAreaProvider>
   );

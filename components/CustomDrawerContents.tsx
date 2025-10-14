@@ -2,7 +2,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { DrawerContentScrollView } from "@react-navigation/drawer";
 import { router } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { StyleSheet } from "react-native";
 import FontSettingItem from "./DrawerContent/FontSettingItem";
 import InquiryItem from "./DrawerContent/InquiryItem";
 import ThemeSettingItem from "./DrawerContent/ThemeSettingItem";
@@ -59,7 +59,7 @@ export default function CustomDrawerContent(props: any) {
       style={{ backgroundColor: themeColors.background }}
       contentContainerStyle={{ flex: 1 }}
     >
-      <View style={[styles.headerBar, { borderBottomColor: themeColors.text }]}>
+      {/* <View style={[styles.headerBar, { borderBottomColor: themeColors.text }]}>
         <Text style={[styles.settingsTitle, { color: themeColors.text }]}>
           HomeFix
         </Text>
@@ -73,7 +73,7 @@ export default function CustomDrawerContent(props: any) {
             />
           </View>
         </TouchableOpacity>
-      </View>
+      </View> */}
       {/* pass themeColors down so items can render with the current theme immediately */}
       <ThemeSettingItem
         styles={styles}
@@ -285,6 +285,14 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFD700",
     borderWidth: 2,
     borderColor: "#FFA500",
+  },
+  moonIcon: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: "#fef168ff",
+    borderWidth: 2,
+    borderColor: "#0c125bff",
   },
   fontIcon: {
     flexDirection: "row",
